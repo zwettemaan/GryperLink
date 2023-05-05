@@ -31,7 +31,7 @@ For licensing and copyright information: see end of the script
 
 For more installation info and documentation: visit 
 
-https://rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
+https://www.rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
 
 The default sample that is configured into `GryperLink.js` will search for a pattern 
 of six digits, a dash, 2 digits. Each time the pattern is found, a hyperlink of the 

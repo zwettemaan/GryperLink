@@ -1,3 +1,13 @@
+# Download
+
+To install, download the latest version of GryperLink here:
+
+https://github.com/zwettemaan/GryperLink/tree/main/build
+
+Click the file name, then click the _Raw_ button.
+
+Follow the instructions in the read me file.
+
 # GryperLink
 
 This is the source structure for the GryperLink script. It was created

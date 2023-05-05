@@ -100,20 +100,20 @@ var gPatternList = [
 // END CONFIGURATION
 ];
 
-UXES.main = main;
+GrpL.main = main;
 
 function getTextParentId(in_text) {
 
     var textElement = in_text.characters.item(0).parent;
 
-    if (UXES.instanceof(textElement, "Array")) {
+    if (GrpL.instanceof(textElement, "Array")) {
         textElement = textElement[0];
     }
 
-    if (UXES.instanceof(textElement, "Cell")) {
+    if (GrpL.instanceof(textElement, "Cell")) {
         textParentId = textElement.parent.id + "*" + textElement.index;
     }
-    else if (UXES.instanceof(textElement, "Story")) {
+    else if (GrpL.instanceof(textElement, "Story")) {
         textParentId = textElement.id;
     }
     else {
@@ -182,9 +182,9 @@ function adjustHyperlinksCache(io_hyperlinksCacheBySourceId, in_parentId, in_sta
 function addToHyperlinksCache(io_hyperlinksCacheBySourceId, in_hyperLink) {
 
     var source = in_hyperLink.source;
-    if (UXES.instanceof(source, "HyperlinkTextSource")) {
+    if (GrpL.instanceof(source, "HyperlinkTextSource")) {
         var destination = in_hyperLink.destination;
-        if (UXES.instanceof(destination, "HyperlinkURLDestination")) {
+        if (GrpL.instanceof(destination, "HyperlinkURLDestination")) {
             var parentId = getSourceParentId(source);
             var parentCache = io_hyperlinksCacheBySourceId[parentId];
             if (! parentCache) {
@@ -205,9 +205,9 @@ function linkatStory(context, storyOrCell) {
         try {
             if (
                 ! (
-                    UXES.instanceof(storyOrCell, "Story") 
+                    GrpL.instanceof(storyOrCell, "Story") 
                 ||
-                    UXES.instanceof(storyOrCell, "Cell")
+                    GrpL.instanceof(storyOrCell, "Cell")
                 )
             ) {
                 break;
@@ -305,7 +305,7 @@ function linkatStory(context, storyOrCell) {
                             try {
                                 replace = false;
                                 var font = firstChar.appliedFont;
-                                if (UXES.instanceof(font, "Font")) {
+                                if (GrpL.instanceof(font, "Font")) {
                                     font = font.name;
                                 }
                                 if (pattern.fontNameSearchPattern.exec(font)) {
@@ -562,7 +562,7 @@ function findCharStyle(context, styleName) {
         try {
 
             var document = context.document;
-            if (! UXES.instanceof(document, "Document")) {
+            if (! GrpL.instanceof(document, "Document")) {
                 break;
             }
 
@@ -608,7 +608,7 @@ function linkat(document) {
     do {
         try {
 
-            if (! UXES.instanceof(document, "Document")) {
+            if (! GrpL.instanceof(document, "Document")) {
                 break;
             }
 
@@ -652,7 +652,7 @@ function linkat(document) {
 
 function main() {
     try {
-        if (app.documents.length && UXES.instanceof(app.activeDocument, "Document")) {
+        if (app.documents.length && GrpL.instanceof(app.activeDocument, "Document")) {
             linkat(app.activeDocument);
         }
     }

@@ -37,6 +37,14 @@ The default sample that is configured into `GryperLink.js` will search for a pat
 of six digits, a dash, 2 digits. Each time the pattern is found, a hyperlink of the 
 form https://coppieters.nz/?p=123456-12 will be assigned to it.
 
+To see what it does: launch InDesign.
+
+Open the _SampleFile.indt_.
+
+Bring up the Hyperlinks panel (_Window - Interactive - Hyperlinks_)
+
+Run the script. The new hyperlinks should appear.
+
 The searchPattern should use the 'g' flag (i.e. the pattern ends with the letter
 g, which means 'Global'): '/.../g').
 

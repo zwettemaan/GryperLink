@@ -36,6 +36,7 @@ echo ""
 echo Copying script files and readme file
 echo ""
 
+cp "${PROJECT_ROOT_DIR}SampleFile.indt" "${BUILD_SCRIPT_ROOT_DIR}"
 cp "${PROJECT_ROOT_DIR}${DESPACED_TARGET_NAME}.js" "${BUILD_SCRIPT_ROOT_DIR}"
 cp "${PROJECT_ROOT_DIR}run_as_UXPScript.${TARGET_FILENAME_EXTENSION}" "${BUILD_SCRIPT_ROOT_DIR}"
 cp "${PROJECT_ROOT_DIR}run_as_ExtendScript.jsx" "${BUILD_SCRIPT_ROOT_DIR}"

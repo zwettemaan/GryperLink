@@ -39,6 +39,7 @@ ECHO.
 ECHO Copying script files and readme file to "%BUILD_SCRIPT_ROOT_DIR%"
 ECHO.
 
+COPY "SampleFile.indt" "%BUILD_SCRIPT_ROOT_DIR%" >NUL 2>&1
 COPY "%DESPACED_TARGET_NAME%.js" "%BUILD_SCRIPT_ROOT_DIR%" >NUL 2>&1
 COPY "run_as_UXPScript.%TARGET_FILENAME_EXTENSION%" "%BUILD_SCRIPT_ROOT_DIR%" >NUL 2>&1
 COPY "run_as_ExtendScript.jsx" "%BUILD_SCRIPT_ROOT_DIR%" >NUL 2>&1

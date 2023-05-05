@@ -8,6 +8,10 @@ Click the file name, then click the _Raw_ button.
 
 Follow the instructions in the read me file.
 
+Also see
+
+https://rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
+
 # GryperLink
 
 This is the source structure for the GryperLink script. It was created

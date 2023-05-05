@@ -1,0 +1,227 @@
+(function() {
+
+// Don't use `var GrpL`
+// By using `var` we will end up defining this in the wrong scope
+
+if ("undefined" == typeof GrpL) {
+    GrpL = {};
+}
+
+GrpL.relativeFilePathsToLoad = [
+
+    "../shared/appMapper.js",
+
+    "../api/globals.js",
+    "../shared/globals.js",
+    "./globals.idjs",
+
+    "../api/tweakableSettings.js",
+    "../shared/tweakableSettings.js",
+
+    "../api/utils.js",
+    "../shared/utils.js",
+    "./utils.idjs",
+
+    "../api/pathUtils.js",
+    "../shared/pathUtils.js",
+    "./pathUtils.idjs",
+
+    "../api/fileio.js",
+    "../shared/fileio.js",
+    "./fileio.idjs",
+    
+    "../api/idDOM.js",
+    "./idDOM.idjs",
+
+    "../api/compat.js",
+    "./compat.idjs",
+
+    "../shared/init.js",
+    "../../GryperLink.js"
+];
+
+// require() and global.require() are different functions. I've come up with a mix-and-match
+// using both. Below, I fetch GrpL.fs and GrpL.g_fs which are different 'fs-like'
+// entities
+
+if (! GrpL.tests) {
+    GrpL.tests = {};
+}
+
+if (! GrpL.uxp) {
+    GrpL.uxp = require("uxp");
+}
+
+if (! GrpL.storage) {
+    GrpL.storage = GrpL.uxp.storage;
+}
+
+if (! GrpL.fs) {
+    GrpL.fs = GrpL.storage.localFileSystem;
+}
+
+if (! GrpL.g_fs) {
+    GrpL.g_fs = global.require("fs");
+}
+
+var ES_SCRIPT_getHomeDir = 
+    "(function() {" +
+        "function dQ(s){\nreturn'\"'+s.replace(/\\\\/g,\"\\\\\\\\\").replace(/\"/g,'\\\\\"')+'\"';\n}" +
+        "return dQ(Folder('~').fsName)" +
+    "})()";
+
+GrpL.initDirsScript = async function initDirsScript() {
+
+    var retVal = false;
+
+    do {
+        try {
+
+            if (! GrpL.dirs) {
+                GrpL.dirs = {};
+            }
+
+            var appLocalTemp = await GrpL.fs.getTemporaryFolder();
+            GrpL.dirs.TEMP = 
+                GrpL.path.addTrailingSeparator(appLocalTemp.nativePath);
+
+            // At the moment, on Windows, the temp path seems to give us relevant data 
+            // regarding the user's context. This can break at any new UXPScript
+            // version!
+
+            try {
+
+                var splitTempPath = GrpL.dirs.TEMP.split(GrpL.path.SEPARATOR);
+
+                if (GrpL.isWindows) {
+
+                    if (splitTempPath.length > 0) {
+                        GrpL.dirs.DRIVE_PREFIX = splitTempPath[0] + GrpL.path.SEPARATOR;
+                    }
+
+                    if (splitTempPath.length > 1) {
+                        GrpL.dirs.USERS = 
+                            GrpL.dirs.DRIVE_PREFIX + 
+                            splitTempPath[1] + GrpL.path.SEPARATOR;
+                    }
+
+                    if (splitTempPath.length > 2) {
+                        GrpL.dirs.HOME = 
+                            GrpL.dirs.USERS + 
+                            splitTempPath[2] + GrpL.path.SEPARATOR;
+                    }
+
+                }
+                else {
+                
+                    // On Mac, the temp path is located in /var... - of no use to us 
+                    GrpL.dirs.DRIVE_PREFIX = "";
+
+                }
+            }
+            catch (err) {            
+            }
+
+            // Fall back to using ExtendScript if we did not manage to get the data
+            if (! GrpL.dirs.HOME) {
+                GrpL.dirs.HOME = 
+                    GrpL.path.addTrailingSeparator(
+                        eval(
+                            app.doScript(
+                                ES_SCRIPT_getHomeDir, 
+                                ScriptLanguage.JAVASCRIPT)));
+            }
+
+        }
+        catch (err) { 
+            GrpL.criticalError("initScript throws " + err);
+        }
+    }
+    while (false);
+}
+
+GrpL.criticalError = function criticalError(error) {
+
+    if (GrpL.logError) {
+        GrpL.logError(error);
+    }
+    
+    if (GrpL.S.LOG_CRITICAL_ERRORS) {
+
+        try {
+            const desktop = 
+                GrpL.fs.getFolder(
+                    GrpL.storage.domains.userDesktop);
+            const logFile = desktop.nativePath + "/criticalErrors.log";
+            logFile.write(error);            
+        }
+        catch (err) {
+
+            try {
+                console.log(error);
+            }
+            catch (err) {   
+            }
+
+        }
+    }
+}
+
+})();
+
+exports.loadModules = async function loadModules(nameSpace, completionCallback) {
+
+    var failedTests = 0;
+    var missingImplementations = 0;
+
+    function verifyImplementationsAvailable(apiCollection) {
+        if (apiCollection) {
+            for (var entryName in apiCollection) {
+                var entry = apiCollection[entryName];
+                if ("function" == typeof entry && entry == GrpL.IMPLEMENTATION_MISSING && entryName != "IMPLEMENTATION_MISSING") {
+                    missingImplementations++;
+                    GrpL.criticalError("Missing implementation " + entryName);
+                }
+            }
+        }
+    }
+
+    function runTests(testCollection) {
+        if (testCollection) {
+            for (var testEntryName in testCollection) {
+                var testEntry = testCollection[testEntryName];
+                if ("function" == typeof testEntry) {
+                    if (! testEntry()) {
+                        GrpL.criticalError("Failed test " + testEntryName);
+                        failedTests++;
+                    }
+                }
+                else if ("object" == typeof testEntry) {
+                    runTests(testEntry);
+                }
+            }
+        }
+    }
+
+    for (var pathIdx = 0; pathIdx < GrpL.relativeFilePathsToLoad.length; pathIdx++) {
+        var path = GrpL.relativeFilePathsToLoad[pathIdx];
+        require(path);
+    }
+
+    await GrpL.initDirsScript();
+
+    GrpL.sharedInitScript();
+
+    for (var member in GrpL) {
+        nameSpace[member] = GrpL[member];        
+    }
+
+    if (GrpL.S.RUN_TESTS) {
+        verifyImplementationsAvailable(GrpL);
+        runTests(GrpL.tests);
+    }
+
+    await GrpL.main();
+
+
+}

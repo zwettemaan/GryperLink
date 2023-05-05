@@ -1,0 +1,96 @@
+//
+// This code is exclusively UXPScript. It provides UXPScript-specific 
+// implementations of the pathutils API.
+//
+// pathutils.js depends on these functions being implemented
+// When adding new functionality here, make sure to also 
+// add corresponding tests to the utils_verifyDependencies()
+//
+(function() {
+
+if (! GrpL.path) {
+    GrpL.path = {};
+}
+
+var URL_FILE_PREFIX = "file:///";
+
+GrpL.path.exists = function exists(filePath) {
+
+    var retVal = false;
+
+    GrpL.logEntry(arguments);
+
+    try {
+        var lstat = GrpL.g_fs.lstatSync(URL_FILE_PREFIX + filePath);
+        retVal = true;
+    }
+    catch (err) {    
+    }
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+GrpL.path.isDir = function isDir(folderPath) {
+
+    var retVal = false;
+
+    GrpL.logEntry(arguments);
+
+    try {
+        var lstat = GrpL.g_fs.lstatSync(URL_FILE_PREFIX + folderPath);
+        retVal = lstat.isDirectory()
+    }
+    catch (err) {    
+    }
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+GrpL.path.mkdir = function mkdir(folderPath, separator) {
+
+    var success = false;
+    GrpL.logEntry(arguments);
+
+    do {
+        try {
+            if (! folderPath) {
+                GrpL.logError(arguments, "no folderPath");
+                break;
+            }
+
+            if (GrpL.path.exists(folderPath)) {
+                success = true;
+                break;
+            }
+
+            var parentFolderPath = GrpL.path.dirname(folderPath, separator);
+            success = GrpL.path.mkdir(parentFolderPath, separator);
+            if (! success) {
+                GrpL.logError(arguments, "cannot create parent folder");
+                break;
+            }
+
+            try {
+                GrpL.g_fs.mkdir(URL_FILE_PREFIX + folderPath);
+            }
+            catch (err) {                
+            }
+
+            success = GrpL.path.isDir(folderPath);
+        }
+        catch (err) {
+            GrpL.logError(arguments, "throws" + err);       
+        }
+    }
+    while (false);
+
+    GrpL.logExit(arguments);
+
+    return success;
+}
+
+})();

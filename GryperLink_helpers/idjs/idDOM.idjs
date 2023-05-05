@@ -1,0 +1,38 @@
+(function() {
+
+// Don't use `var GrpL`
+// By using `var` we will end up defining this in the wrong scope
+
+if ("undefined" == typeof GrpL) {
+    GrpL = {};
+}
+
+GrpL.instanceof = function _instanceof(object, domClassName) {
+  
+    var retVal = false;
+
+    GrpL.logEntry(arguments);
+
+    do {
+
+        try {
+
+            if (! object) {
+                break;
+            }
+
+            retVal = object.constructorName == domClassName;
+        }
+        catch (err) {
+            GrpL.logError(arguments, "throws " + err);
+        }
+
+    }
+    while (false);
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+})();

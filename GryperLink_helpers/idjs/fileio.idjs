@@ -1,0 +1,92 @@
+(function() {
+
+if (! GrpL.fileio) {
+    GrpL.fileio = {};
+}
+
+var ES_SCRIPT_readUTF8TextFile = 
+    "(function(filePath) {" +
+        "var result = '';" +
+        "function dQ(s){\nreturn'\"'+s.replace(/\\\\/g,\"\\\\\\\\\").replace(/\"/g,'\\\\\"').replace(/\\n/g,\"\\\\n\").replace(/\\r/g,\"\\\\r\")+'\"';\n}" +
+        "try {" +
+            "var textFile = File(filePath);" +
+            "textFile.open('r');" +
+            "textFile.encoding = 'UTF8';" +
+            "result = textFile.read();" +
+            "textFile.close();" +
+        "}" +
+        "catch (err) {" +
+        "}" +
+        "return dQ(result)";
+    "})";
+
+var ES_SCRIPT_outputToUTF8TextFile = 
+    "(function(filePath, line, mode_a_or_w, mustAddNewline) {" +
+        "try {" +
+            "var textFile = File(filePath);" +
+            "textFile.open(mode_a_or_w);" +
+            "textFile.encoding = 'UTF8';" +
+            "if (mustAddNewline){" +
+                "textFile.writeln(line);" +
+            "}" +
+            "else{" +
+                "textFile.write(line);" +
+            "}" +
+            "textFile.close();" +
+        "}" +
+        "catch (err) {" +
+        "}" +
+    "})";
+
+// No logging in these functions - they are themselves used by the logging functions
+
+GrpL.fileio.appendUTF8TextFile = async function appendUTF8TextFile(filePath, text, handleNewLine) {
+
+    try {
+        var extendScript = 
+            ES_SCRIPT_outputToUTF8TextFile + "(" +
+                GrpL.dQ(filePath) + "," +
+                GrpL.dQ(text) + "," +
+                GrpL.dQ("a") + "," +
+                (handleNewLine == GrpL.fileio.FILEIO_APPEND_NEWLINE ? "true" : "false") +
+            ")";
+        await app.doScript(extendScript, ScriptLanguage.JAVASCRIPT);
+    }
+    catch (err) {       
+    }
+}
+
+GrpL.fileio.readUTF8TextFile = async function readUTF8TextFile(filePath) {
+
+    var retVal;
+
+    try {
+        var extendScript = 
+            ES_SCRIPT_readUTF8TextFile + "(" +
+                GrpL.dQ(filePath) + 
+            ")";
+        retVal = await eval(app.doScript(extendScript, ScriptLanguage.JAVASCRIPT));
+    }
+    catch (err) {        
+    }
+
+    return retVal;
+}
+
+GrpL.fileio.writeUTF8TextFile = async function writeUTF8TextFile(filePath, text, handleNewLine) {
+
+    try {
+        var extendScript = 
+            ES_SCRIPT_outputToUTF8TextFile + "(" +
+                GrpL.dQ(filePath) + "," +
+                GrpL.dQ(text) + "," +
+                GrpL.dQ("w") + "," +
+                (handleNewLine == GrpL.fileio.FILEIO_APPEND_NEWLINE ? "true" : "false") +
+            ")";
+        await app.doScript(extendScript, ScriptLanguage.JAVASCRIPT);
+    }
+    catch (err) {        
+    }
+}
+
+})();

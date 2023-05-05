@@ -1,0 +1,82 @@
+//
+// This code is exclusively UXPScript. It provides UXPScript-specific 
+// implementations of the utils API.
+//
+(function() {
+
+GrpL.clearImmediate = function _clearImmediate(taskId) {
+
+    GrpL.logEntry(arguments);
+
+
+    clearImmediate(taskId);
+
+    GrpL.logExit(arguments);
+
+}
+
+GrpL.clearInterval = function _clearInterval(taskId) {
+
+    GrpL.logEntry(arguments);
+
+
+    clearInterval(taskId);
+
+    GrpL.logExit(arguments);
+
+}
+
+GrpL.clearTimeout = function _clearTimeout(taskId) {
+
+    GrpL.logEntry(arguments);
+
+
+    clearTimeout(taskId);
+
+    GrpL.logExit(arguments);
+
+}
+
+GrpL.setImmediate = function _setImmediate(taskFtn) {
+
+    var retVal;
+
+    GrpL.logEntry(arguments);
+
+
+    retVal = setImmediate(taskFtn);
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+GrpL.setInterval = function _setInterval(taskFtn, timeoutMilliseconds) {
+
+    var retVal;
+
+    GrpL.logEntry(arguments);
+
+
+    retVal = setInterval(taskFtn, timeoutMilliseconds);
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+GrpL.setTimeout = function _setTimeout(taskFtn, timeoutMilliseconds) {
+
+    var retVal;
+
+    GrpL.logEntry(arguments);
+
+
+    retVal = setTimeout(taskFtn, timeoutMilliseconds);
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+})();

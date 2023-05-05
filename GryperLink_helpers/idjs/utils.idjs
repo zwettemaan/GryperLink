@@ -1,0 +1,135 @@
+//
+// This code is exclusively UXPScript. It provides UXPScript-specific 
+// implementations of the utils API.
+//
+// utils.js depends on these functions being implemented
+// When adding new functionality here, make sure to also 
+// add corresponding tests to the utils_verifyDependencies()
+//
+
+(function() {
+
+GrpL.alert = function alert(msg) {    
+
+    GrpL.logEntry(arguments);
+
+    const theDialog = app.dialogs.add();
+    const col = theDialog.dialogColumns.add();
+    const colText = col.staticTexts.add();
+    colText.staticLabel = "" + msg;
+    theDialog.canCancel = false;
+    theDialog.show();
+    theDialog.destroy();
+
+    GrpL.logExit(arguments);
+
+}
+
+GrpL.checkMac = function checkMac() {    
+
+    var retVal = undefined;
+
+    GrpL.logEntry(arguments);
+
+    retVal = window.navigator.platform == "darwin";
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+GrpL.checkWindows = function checkWindows() {    
+
+    var retVal = undefined;
+
+    GrpL.logEntry(arguments);
+
+    retVal = window.navigator.platform.toLowerCase().indexOf("win") != -1;
+
+    GrpL.logExit(arguments);
+
+    return retVal;
+}
+
+GrpL.logMessage = function(reportingFunctionArguments, levelPrefix, message) {
+
+    var savedInLogger = GrpL.inLogger;
+
+    do {
+        try {
+
+            if (GrpL.inLogger) {
+                break;
+            }
+            
+            GrpL.inLogger = true;
+            
+            var functionPrefix = "";
+
+            if (! message) {
+
+                  message = reportingFunctionArguments;
+                  reportingFunctionArguments = undefined;
+
+            }
+            else if (reportingFunctionArguments) {
+
+                if ("string" == typeof reportingFunctionArguments) {
+
+                    functionPrefix += reportingFunctionArguments + ": ";
+                    
+                }
+                else {
+
+                    var reportingFunctionName;
+                    try {
+                        reportingFunctionName = reportingFunctionArguments.callee.toString().match(/function ([^\(]+)/)[1];
+                    }
+                    catch (err) {
+                        reportingFunctionName = "[anonymous function]";
+                    }
+                    functionPrefix += reportingFunctionName + ": ";
+
+                }
+            }
+            
+            var now = new Date();
+            var timePrefix = 
+                GrpL.leftPad(now.getUTCDate(), "0", 2) + 
+                "-" + 
+                GrpL.leftPad(now.getUTCMonth() + 1, "0", 2) + 
+                "-" + 
+                GrpL.leftPad(now.getUTCFullYear(), "0", 4) + 
+                " " + 
+                GrpL.leftPad(now.getUTCHours(), "0", 2) + 
+                ":" + 
+                GrpL.leftPad(now.getUTCMinutes(), "0", 2) + 
+                ":" + 
+                GrpL.leftPad(now.getUTCSeconds(), "0", 2) + 
+                "+00 ";
+
+            var platformPrefix = "U ";
+            
+            var logLine = platformPrefix + timePrefix + "- " + levelPrefix + ": " + functionPrefix + message;
+                    
+            if (GrpL.S.LOG_TO_FILEPATH) {
+                GrpL.fileio.appendUTF8TextFile(
+                    GrpL.S.LOG_TO_FILEPATH, 
+                    logLine, 
+                    GrpL.fileio.FILEIO_APPEND_NEWLINE);
+            }
+
+            if (GrpL.S.LOG_TO_UXPDEVTOOL_CONSOLE) {
+                console.log(logLine); 
+            }
+
+        }
+        catch (err) {
+        }
+    }
+    while (false);
+
+    GrpL.inLogger = savedInLogger;
+}
+
+})();

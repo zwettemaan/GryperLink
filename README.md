@@ -10,7 +10,7 @@ Follow the instructions in the read me file.
 
 Also see
 
-https://rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
+https://www.rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
 
 # GryperLink
 

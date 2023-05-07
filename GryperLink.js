@@ -39,7 +39,7 @@
 //
 // For installation info and documentation: visit 
 //
-// https://rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
+// https://www.rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
 //
 // The sample below will search for a pattern of six digits, a dash, 2 digits. Each time
 // the pattern is found, a hyperlink of the form https://coppieters.nz/?p=123456-12 will 

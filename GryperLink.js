@@ -1,7 +1,7 @@
 //
 // Gryperlink.jsx - a script for Adobe InDesign
 //
-// v 1.0.8, May 5, 2021
+// v 1.0.9, Jun 24, 2023
 //
 // by Kris Coppieters 
 // kris@rorohiko.com
@@ -39,7 +39,7 @@
 //
 // For installation info and documentation: visit 
 //
-// https://www.rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
+// https://rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
 //
 // The sample below will search for a pattern of six digits, a dash, 2 digits. Each time
 // the pattern is found, a hyperlink of the form https://coppieters.nz/?p=123456-12 will 
@@ -76,9 +76,9 @@ var gPatternList = [
     // Make sure to add the 'g' flag after the GREP expression
     // Add an 'i' flag to make the search case-insensitive
     
-    searchPattern: /(\d{6}-\d{2})/g,
-    link: "https://coppieters.nz/?p=$1",
-    charStyleName: "linkstyle",
+    searchPattern: /\b(\d{1,3})\s/g,
+    link: "https://www.selman.com/cgi-bin/start.cgi/auction2003/index.html?lot=$1",
+    charStyleName: "HL",
     
     // Additional match options below. Either delete them or 
     // leave these set to 
@@ -92,143 +92,89 @@ var gPatternList = [
     // There is no need for a 'g' flag here
     
     paraStyleNameSearchPattern: undefined,
-    charStyleNameSearchPattern: undefined,
+    charStyleNameSearchPattern: /^(Number|HL)$/i,
     fontNameSearchPattern: undefined
+},
+{
+    imageLinkSearchPattern: /^0*(\d{1,3}).tif$/,
+    link: "https://www.selman.com/cgi-bin/start.cgi/auction2003/index.html?lot=$1",    
 }
 
 // You can add additional patterns to the list here...
 // END CONFIGURATION
 ];
 
-GrpL.main = main;
-
-function getTextParentId(in_text) {
-
-    var textElement = in_text.characters.item(0).parent;
-
-    if (GrpL.instanceof(textElement, "Array")) {
-        textElement = textElement[0];
-    }
-
-    if (GrpL.instanceof(textElement, "Cell")) {
-        textParentId = textElement.parent.id + "*" + textElement.index;
-    }
-    else if (GrpL.instanceof(textElement, "Story")) {
-        textParentId = textElement.id;
-    }
-    else {
-        textParentId = in_text.parentStory.id;
-    }
-
-    return "H" + textParentId;
-}
-
-function getTextId(in_text) {
-
-    var textFromIdx = in_text.characters.firstItem().index;
-    var textToIdx = in_text.characters.lastItem().index;
-
-    var textId = "K|" + textFromIdx + "|" + textToIdx;
-
-    return textId;
-}
-
-function getSourceParentId(in_source) {
-
-    var sourceText = in_source.sourceText;
-
-    var sourceParentId = getTextParentId(sourceText);
-
-    return sourceParentId;
-}
-
-function adjustHyperlinksCache(io_hyperlinksCacheBySourceId, in_parentId, in_startIdx, in_endIdx, in_oldEndIdx) {
+function linkatImageLink(document, imageLink) {
 
     do {
-        var parentCache = io_hyperlinksCacheBySourceId[in_parentId];
-        if (! parentCache) {
-            break;
-        }
-
-        var shift = in_endIdx - in_oldEndIdx;
-        if (shift == 0) {
-            break;
-        }
-
-        var newParentCache = {};
-        for (var textId in parentCache) {
-
-            var keys = textId.split("|");
-            var fromIdx = parseInt(keys[1], 10);
-            if (fromIdx >= in_oldEndIdx) {
-                fromIdx += shift;
+        try {
+            if ( ! ((imageLink instanceof Link))
+            ) {
+                break;
             }
 
-            var toIdx = parseInt(keys[2], 10);
-            if (toIdx >= in_oldEndIdx) {
-                toIdx += shift;
+            var parentImage = imageLink.parent;
+            if (! (parentImage instanceof Image)) {
+                break
             }
 
-            var newTextId = "K|" + fromIdx + "|" + toIdx;
-            newParentCache[newTextId] = parentCache[textId];
-        }
+            var imageFileName = imageLink.name;
+            for (var patternIdx = 0; patternIdx < gPatternList.length; patternIdx++) {
 
-        io_hyperlinksCacheBySourceId[in_parentId] = newParentCache;
+                var pattern = gPatternList[patternIdx];
+
+                var imageLinkSearchPattern = pattern.imageLinkSearchPattern;
+                if (imageLinkSearchPattern) {
+
+                    var link = pattern.link;
+
+                    if (match = imageLinkSearchPattern.exec(imageFileName)) {
+
+                        var matchedString = match[0];
+                        var matchedLink = matchedString.replace(imageLinkSearchPattern, link);
+                        var hyperLinkDestination = addHyperlinkDestination(document, matchedLink);                        
+                        var source = addHyperlinkImageSource(document, parentImage);
+
+                        var hyperLinks = app.activeDocument.hyperlinks;                        
+                        var hyperlinkIdx = hyperLinks.length - 1;
+                        while (hyperlinkIdx >= 0) {
+                            var hyperLink = hyperLinks[hyperlinkIdx];
+                            if (hyperLink.source == source) {
+                                hyperLink.remove();
+                                break;
+                            }
+                            hyperlinkIdx--;
+                        }
+
+                        try {
+                            var link = app.activeDocument.hyperlinks.add(source, hyperLinkDestination);
+                        }
+                        catch (err) {                            
+                        }
+                    }                    
+                }
+            }
+
+        }
+        catch (err) {
+        }
     }
     while (false);
 
 }
 
-function addToHyperlinksCache(io_hyperlinksCacheBySourceId, in_hyperLink) {
-
-    var source = in_hyperLink.source;
-    if (GrpL.instanceof(source, "HyperlinkTextSource")) {
-        var destination = in_hyperLink.destination;
-        if (GrpL.instanceof(destination, "HyperlinkURLDestination")) {
-            var parentId = getSourceParentId(source);
-            var parentCache = io_hyperlinksCacheBySourceId[parentId];
-            if (! parentCache) {
-                parentCache = {};
-                io_hyperlinksCacheBySourceId[parentId] = parentCache;
-            }
-
-            var textId = getTextId(source.sourceText);
-            
-            parentCache[textId] = in_hyperLink;
-        }
-    }
-}
-
-function linkatStory(context, storyOrCell) {
+function linkatStory(document, storyOrCell) {
 
     do {
         try {
             if (
                 ! (
-                    GrpL.instanceof(storyOrCell, "Story") 
+                    (storyOrCell instanceof Story) 
                 ||
-                    GrpL.instanceof(storyOrCell, "Cell")
+                    (storyOrCell instanceof Cell)
                 )
             ) {
                 break;
-            }
-
-            var document = context.document;
-
-            var hyperlinksCacheBySourceId = context.hyperlinksCacheBySourceId;
-            if (! hyperlinksCacheBySourceId) {
-
-                hyperlinksCacheBySourceId = {};
-                context.hyperlinksCacheBySourceId = hyperlinksCacheBySourceId;
-                var hyperlinks = document.hyperlinks.everyItem().getElements().slice(0);
-                for (var idx = 0; idx < hyperlinks.length; idx++) {
-                    try {
-                        var hyperlink = hyperlinks[idx];
-                        addToHyperlinksCache(context.hyperlinksCacheBySourceId, hyperlink);
-                    }
-                    catch (err) {          
-                    }
-                }
             }
 
             for (var patternIdx = 0; patternIdx < gPatternList.length; patternIdx++) {
@@ -236,156 +182,121 @@ function linkatStory(context, storyOrCell) {
                 var pattern = gPatternList[patternIdx];
 
                 var searchPattern = pattern.searchPattern;
-                var link = pattern.link;
-                var text = pattern.text;
-                var charStyle = findCharStyle(context, pattern.charStyleName);
+                if (searchPattern) {
+                    var link = pattern.link;
+                    var text = pattern.text;
+                    var charStyle = findCharStyle(document, pattern.charStyleName);
 
-                var matchFound = false;
+                    var matchList = [];
+                    var match;
+                    var contents = storyOrCell.contents;
+                    searchPattern.lastIndex = 0;
 
-                var storyOrCellContents = storyOrCell.contents;
-                var matchList = [];
-                var match;
-                var contents = storyOrCell.contents;
-                searchPattern.lastIndex = 0;
-                while (match = searchPattern.exec(contents)) {
-                    var matchIdx = match.index;
-                    var matchedString = match[0];
-                    matchList.push({
-                        matchIdx: matchIdx,
-                        matchedString: matchedString
-                    });
-                }
-                for (var matchIdx = 0; matchIdx < matchList.length; matchIdx++) {
-                    var match = matchList[matchIdx];
-                    var matchedLink = match.matchedString.replace(searchPattern, link);
-                    match.matchedLink = matchedLink;
-                }
-                if (text) {
-                    for (var matchIdx = 0; matchIdx < matchList.length; matchIdx++) {
-                        var match = matchList[matchIdx];
-                        var matchedText = match.matchedString.replace(searchPattern, text);
-                        match.matchedText = matchedText;
+                    while (match = searchPattern.exec(contents)) {
+                        var matchIdx = match.index;
+                        var matchedString = match[0];
+                        var matchedLink = matchedString.replace(searchPattern, link);
+                        if (text) {
+                            var matchedText = matchedString.replace(searchPattern, text);
+                        }
+                        else {
+                            matchedText = "";
+                        }
+                        matchList.push({
+                            matchIdx: matchIdx,
+                            matchedString: matchedString,
+                            matchedLink: matchedLink,
+                            matchedText: matchedText
+                        });
                     }
-                }
 
-                for (var idx = matchList.length - 1; idx >= 0; idx--) {
-                    try {
-                        var match = matchList[idx];
-                        var startIdx = match.matchIdx;
-                        var endIdx = startIdx + match.matchedString.length - 1;
-                        var firstChar = storyOrCell.characters.item(startIdx);
-                      
-                        var replace = true;                      
+                    for (var matchListIdx = matchList.length - 1; matchListIdx >= 0; matchListIdx--) {
+                        try {
+                            var match = matchList[matchListIdx];
+                            var startIdx = match.matchIdx;
+                            var endIdx = startIdx + match.matchedString.length - 1;
+                            var firstChar = storyOrCell.characters.item(startIdx);
+                        
+                            var replace = true;                      
 
-                        if (replace && pattern.paraStyleNameSearchPattern) {
-                            try {
-                                replace = false;
-                                var paraStyleName = firstChar.appliedParagraphStyle.name;
-                                if (pattern.paraStyleNameSearchPattern.exec(paraStyleName)) {
-                                    replace = true;
-                                }
-                            }
-                            catch (err) {
-                            }
-                        }
-
-                        if (replace && pattern.charStyleNameSearchPattern) {
-                            try {
-                                replace = false;
-                                var charStyleName = firstChar.appliedCharacterStyle.name;
-                                if (pattern.charStyleNameSearchPattern.exec(charStyleName)) {
-                                    replace = true;
-                                }
-                            }
-                            catch (err) {
-                            }
-                        }
-
-                        if (replace && pattern.fontNameSearchPattern) {
-                            try {
-                                replace = false;
-                                var font = firstChar.appliedFont;
-                                if (GrpL.instanceof(font, "Font")) {
-                                    font = font.name;
-                                }
-                                if (pattern.fontNameSearchPattern.exec(font)) {
-                                    replace = true;
-                                }
-                            }
-                            catch (err) {
-                            }
-                        }
-                      
-                        if (replace) {
-                            try {
-                                var characters = storyOrCell.characters.itemByRange(startIdx, endIdx);
-                                var hyperlink = undefined;
-                                var parentId = getTextParentId(characters);
-                                var parentCache = hyperlinksCacheBySourceId[parentId];
-                                if (parentCache) {
-                                    var textId = getTextId(characters);
-                                    hyperlink = parentCache[textId];
-                                }
-
-                                var matchingHyperlink = undefined;
-                                if (hyperlink) {
-                                    var destinationURL = hyperlink.destination.destinationURL;
-                                    if (destinationURL == match.matchedLink) {
-                                        matchingHyperlink = hyperlink;
+                            if (replace && pattern.paraStyleNameSearchPattern) {
+                                try {
+                                    replace = false;
+                                    var paraStyleName = firstChar.appliedParagraphStyle.name;
+                                    if (pattern.paraStyleNameSearchPattern.exec(paraStyleName)) {
+                                        replace = true;
                                     }
-                                    else {
-                                        hyperlink.remove();
-                                        delete parentCache[textId];
-                                        var parentCacheEmpty = true;
-                                        for (var child in parentCache) {
-                                            parentCacheEmpty = false;
+                                }
+                                catch (err) {
+                                }
+                            }
+
+                            if (replace && pattern.charStyleNameSearchPattern) {
+                                try {
+                                    replace = false;
+                                    var charStyleName = firstChar.appliedCharacterStyle.name;
+                                    if (pattern.charStyleNameSearchPattern.exec(charStyleName)) {
+                                        replace = true;
+                                    }
+                                }
+                                catch (err) {
+                                }
+                            }
+
+                            if (replace && pattern.fontNameSearchPattern) {
+                                try {
+                                    replace = false;
+                                    var font = firstChar.appliedFont;
+                                    if (font instanceof Font) {
+                                        font = font.name;
+                                    }
+                                    if (pattern.fontNameSearchPattern.exec(font)) {
+                                        replace = true;
+                                    }
+                                }
+                                catch (err) {
+                                }
+                            }
+                        
+                            if (replace) {
+                                if (matchedText) {
+                                    storyOrCell.characters.itemByRange(startIdx + 1, endIdx).remove();
+                                    storyOrCell.characters.item(startIdx).contents = match.matchedText;
+                                    endIdx = startIdx + match.matchedText.length - 1;
+                                }
+                                try {
+                                    var hyperLinkDestination = addHyperlinkDestination(document, match.matchedLink);
+                                    var characters = storyOrCell.characters.itemByRange(startIdx, endIdx);
+                                    var source = addHyperlinkTextSource(document, characters);
+
+                                    var hyperLinks = app.activeDocument.hyperlinks;                        
+                                    var hyperlinkIdx = hyperLinks.length - 1;
+                                    while (hyperlinkIdx >= 0) {
+                                        var hyperLink = hyperLinks[hyperlinkIdx];
+                                        if (hyperLink.source == source) {
+                                            hyperLink.remove();
                                             break;
                                         }
-                                        if (parentCacheEmpty) {
-                                            hyperlinksCacheBySourceId[parentId] = undefined;
-                                        }
+                                        hyperlinkIdx--;
                                     }
-                                }
-                            
-                                if (! matchingHyperlink) {
-                                    var source = addHyperlinkTextSource(context, characters, match.matchedString);
-                                    var hyperLinkDestination = addHyperlinkDestination(context, match.matchedLink, match.matchedString);
+            debugger;
                                     try {
-                                        matchingHyperlink = document.hyperlinks.add(source, hyperLinkDestination);
-                                        addToHyperlinksCache(hyperlinksCacheBySourceId, matchingHyperlink);
-                                        assignUniqueName(matchingHyperlink, document.hyperlinks, match.matchedString);
+                                        var link = app.activeDocument.hyperlinks.add(source, hyperLinkDestination);
                                     }
-                                    catch (err) {
+                                    catch (err) {                            
                                     }
-                                }
-
-                                if (matchedText) {
-                                    var existingText = storyOrCell.contents.substr(startIdx, endIdx - startIdx + 1);
-                                    if (existingText != match.matchedText) {                                    
-
-                                        var parentId = getTextParentId(characters);
-
-                                        storyOrCell.characters.itemByRange(startIdx + 1, endIdx).remove();
-                                        storyOrCell.characters.item(startIdx).contents = match.matchedText;
-                                        var oldEndIdx = endIdx;
-                                        endIdx = startIdx + match.matchedText.length - 1;
-                                        characters = storyOrCell.characters.itemByRange(startIdx, endIdx);
-
-                                        adjustHyperlinksCache(hyperlinksCacheBySourceId, parentId, startIdx, endIdx, oldEndIdx);                                      
+                                    if (charStyle) {
+                                        characters.appliedCharacterStyle = charStyle;
                                     }
                                 }
-                            
-                                if (charStyle) {
-                                    characters.appliedCharacterStyle = charStyle;
+                                catch (err) {
                                 }
-                            }
-                            catch (err) {
                             }
                         }
+                        catch (err) {
+                        }
                     }
-                    catch (err) {
-                    }
-                 }
+                }
             }
         }
         catch (err) {
@@ -394,144 +305,116 @@ function linkatStory(context, storyOrCell) {
     while (false);
 }
 
-function assignUniqueName(element, collection, baseName) {
-    var uniqueName = baseName;
-    var instanceNumber = 1;
-    do {
-        var existingElement = collection.itemByName(uniqueName);
-        if (! existingElement.isValid) {
-            existingElement = undefined;
-        }
-        else {
-            instanceNumber++;
-            uniqueName = baseName + " # " + instanceNumber;
-        }
-    }
-    while (existingElement);
-    element.name = uniqueName;
-}
-
-function addHyperlinkTextSource(context, text, linkName) {
-
+function addHyperlinkImageSource(document, image) {
+    
     var retVal = undefined;
+
     do {
-
         try {
-
-            var document = context.document;
-
-            var parentId = getTextParentId(text);
-
-            var hyperlinkTextSourceCacheByParentId = context.hyperlinkTextSourceCacheByParentId;
-            if (! hyperlinkTextSourceCacheByParentId) {
-                hyperlinkTextSourceCacheByParentId = {};
-                context.hyperlinkTextSourceCacheByParentId = hyperlinkTextSourceCacheByParentId;
-                var hyperlinkTextSources = document.hyperlinkTextSources.everyItem().getElements().slice(0);
-                for (var idx = 0; idx < hyperlinkTextSources.length; idx++) {
-                    try {
-                        var source = hyperlinkTextSources[idx];
-                        addSourceToCache(hyperlinkTextSourceCacheByParentId, source);
+            var sourceCount = document.hyperlinkPageItemSources.length;
+            var parentId = image.id;
+            for (var sourceIdx = 0; sourceIdx < sourceCount; sourceIdx++) {
+                try {
+                    var source = document.hyperlinkPageItemSources.item(sourceIdx);
+                    var sourceId = source.sourcePageItem.id;
+                    if (parentId == sourceId) {
+                        retVal = source;
+                        break;
                     }
-                    catch (err) {            
-                    }
+                }
+                catch (err) {            
                 }
             }
 
+            if (retVal) {
+                break;
+            }
+
+            retVal = document.hyperlinkPageItemSources.add(image); 
+        }
+        catch (err) {            
+        }
+    }
+    while (false);
+
+    return retVal;
+}
+
+function addHyperlinkTextSource(document, text) {
+    var retVal = undefined;
+    do {
+        try {
+            var parentId;
+            var parentElement = text.characters.item(0).parent[0];
+            var isCell = parentElement instanceof Cell;
+            if (isCell) {                
+                parentId = parentElement.parent.id + "*" + parentElement.index;
+            }
+            else {
+                parentId = text.characters.item(0).parentStory[0].id;
+            }
             var fromIdx = text.characters.item(0).index[0];
             var toIdx = text.characters.item(text.characters.length - 1).index[0];
-            var sourcesInsideParent = hyperlinkTextSourceCacheByParentId[parentId];
-            var newSourcesInsideParent = undefined;
-            if (sourcesInsideParent) {
-                var toRemove = [];
-                for (var idx = 0; idx < sourcesInsideParent.length; idx++) {
-                    try {
-                        var source = sourcesInsideParent[idx];
-                        var sourceText = source.sourceText;
+            var sourceCount = document.hyperlinkTextSources.length;
+            var toRemove = [];
+            for (var sourceIdx = 0; sourceIdx < sourceCount; sourceIdx++) {
+                try {
+                    var source = document.hyperlinkTextSources.item(sourceIdx);
+                    var sourceText = source.sourceText;
+                    var sourceElement = sourceText.characters.item(0).parent;
+                    var sourceIsCell = sourceElement instanceof Cell;
+                    var sourceId;
+                    if (sourceIsCell) {
+                        sourceId = sourceElement.parent.id + "*" + sourceElement.index;
+                    }
+                    else {
+                        sourceId = sourceText.parentStory.id;
+                    }
+                    if (sourceId == parentId) {
                         var sourceFromIdx = sourceText.characters.firstItem().index;
                         var sourceToIdx = sourceText.characters.lastItem().index;
                         if (sourceToIdx >= fromIdx && toIdx >= sourceFromIdx) {
                             toRemove.push(source);
                         }
-                        else {
-                            if (! newSourcesInsideParent) {
-                                newSourcesInsideParent = [];
-                            }
-                            newSourcesInsideParent.push(source);
-                        }
-                    }
-                    catch (err) {            
                     }
                 }
-
-                for (var idx = 0; idx < toRemove.length; idx++) {
-                    toRemove[idx].remove();
-                }
-
-                if (! newSourcesInsideParent && sourcesInsideParent) {
-                    delete hyperlinkTextSourceCacheByParentId[parentId];
-                }
-                else {
-                    hyperlinkTextSourceCacheByParentId[parentId] = newSourcesInsideParent;
+                catch (err) {            
                 }
             }
 
-            retVal = document.hyperlinkTextSources.add(text);
-            addSourceToCache(hyperlinkTextSourceCacheByParentId, retVal);            
-            assignUniqueName(retVal, document.hyperlinkTextSources, linkName);
+            for (var removeIdx = 0; removeIdx < toRemove.length; removeIdx++) {
+                toRemove[removeIdx].remove();
+            }
+
+            retVal = document.hyperlinkTextSources.add(text); 
         }
         catch (err) {            
         }
     }
     while (false);
 
-    function addSourceToCache(io_hyperlinkTextSourceCacheByParentId, in_source) {
-
-        var sourceParentId = getSourceParentId(in_source);
-
-        var sourceList = io_hyperlinkTextSourceCacheByParentId[sourceParentId];
-        if (! sourceList) {
-            sourceList = [];
-            io_hyperlinkTextSourceCacheByParentId[sourceParentId] = sourceList;
-        }
-        sourceList.push(in_source);
-
-    }
-
     return retVal;
 }
 
-function addHyperlinkDestination(context, url, linkName) {
-
+function addHyperlinkDestination(document, url) {
     var retVal = undefined;
-    
     do {
         try {
-            var document = context.document;
-
-            var hyperlinkURLDestinationCacheByURL = context.hyperlinkTextDestinationCacheByURL;
-            if (! hyperlinkURLDestinationCacheByURL) {
-                hyperlinkURLDestinationCacheByURL = {};
-                context.hyperlinkURLDestinationCacheByURL = hyperlinkURLDestinationCacheByURL;
-                var hyperlinkURLDestinations = document.hyperlinkURLDestinations.everyItem().getElements().slice(0);
-                for (var idx = 0; idx < hyperlinkURLDestinations.length; idx++) {
-                    try {
-                        var destination = hyperlinkURLDestinations[idx];
-                        addDestinationToCache(hyperlinkURLDestinationCacheByURL, destination);
-                    }
-                    catch (err) {            
+            var linkCount = document.hyperlinkURLDestinations.length;
+            for (var linkIdx = 0; linkIdx < linkCount; linkIdx++) {
+                try {
+                    var destination = document.hyperlinkURLDestinations.item(linkIdx);
+                    if (destination.destinationURL == url) {
+                        retVal = destination;
+                        break; // for
                     }
                 }
+                catch (err) {            
+                }
             }
-
-            var destination = hyperlinkURLDestinationCacheByURL[url];
-            if (destination) {
-                retVal = destination[0];
-                break;
+            if (! retVal) {
+                retVal = document.hyperlinkURLDestinations.add(url);
             }
-
-            retVal = document.hyperlinkURLDestinations.add(url);
-            addDestinationToCache(hyperlinkURLDestinationCacheByURL, retVal);
-            assignUniqueName(retVal, document.hyperlinkURLDestinations, linkName);
         }
         catch (err) {            
         }
@@ -539,43 +422,20 @@ function addHyperlinkDestination(context, url, linkName) {
     while (false);
 
     return retVal;
-
-    function addDestinationToCache(io_hyperlinkURLDestinationCacheByURL, in_destination) {
-
-        var destinationURL = in_destination.destinationURL;
-        var destinationList = io_hyperlinkURLDestinationCacheByURL[destinationURL];
-        if (! destinationList) {
-            destinationList = [];
-            io_hyperlinkURLDestinationCacheByURL[destinationURL] = destinationList;
-        }
-        destinationList.push(in_destination);
-
-    }
-
 }
 
-function findCharStyle(context, styleName) {
+function findCharStyle(document, styleName) {
 
     var retVal = null;
 
     do {        
         try {
-
-            var document = context.document;
-            if (! GrpL.instanceof(document, "Document")) {
+            if (! (document instanceof Document)) {
                 break;
             }
-
             if (! styleName) {
                 break;
-            }            
-
-            var styleCache = context.styleCache;
-            if (styleCache && styleCache[styleName]) {
-                retVal = styleCache[styleName];
-                break;
             }
-
             var searchStyleString = styleName.replace(/\s/g,"").toLowerCase();
             var styleCount = document.characterStyles.length;
             for (var styleIdx = 0; styleIdx < styleCount; styleIdx++) {
@@ -588,12 +448,6 @@ function findCharStyle(context, styleName) {
                 }
             }
 
-            if (! styleCache) {
-                styleCache = {};
-                context.styleCache = styleCache;
-            }
-
-            styleCache[styleName] = retVal;
         }
         catch (err) {
         }
@@ -608,20 +462,24 @@ function linkat(document) {
     do {
         try {
 
-            if (! GrpL.instanceof(document, "Document")) {
+            if (! (document instanceof Document)) {
                 break;
             }
 
-            var context = {
-                document: document
-            };
+            var linkCount = document.links.length;
+            for (var linkIdx = 0; linkIdx < linkCount; linkIdx++) {
+                
+                var imageLink = document.links.item(linkIdx);
+                
+                linkatImageLink(document, imageLink);                               
+           }    
 
             var storyCount = document.stories.length;
             for (var storyIdx = 0; storyIdx < storyCount; storyIdx++) {
                 
                 var story = document.stories.item(storyIdx);
                 
-                linkatStory(context, story);              
+                linkatStory(document, story)               
                 
                 //
                 // We need to work around a bug in InDesign: when adding a hyperlink 
@@ -638,10 +496,12 @@ function linkat(document) {
                     var cellCount = table.cells.length;
                     for (var cellIdx = --cellCount; cellIdx >= 0; cellIdx--) {
                         var cell = table.cells.item(cellIdx);
-                        linkatStory(context, cell);                    
+                        linkatStory(document, cell);                    
                     }
                 }
            }    
+
+           
         }
         catch (err) {
         }
@@ -652,14 +512,16 @@ function linkat(document) {
 
 function main() {
     try {
-        if (app.documents.length && GrpL.instanceof(app.activeDocument, "Document")) {
+        if (app.documents.length && app.activeDocument instanceof Document) {
             linkat(app.activeDocument);
         }
     }
     catch (err) {
     }
-
 }
+
+main();
+//app.doScript("main()", ScriptLanguage.JAVASCRIPT, [], UndoModes.ENTIRE_SCRIPT);
 
 /*************************************************************
 

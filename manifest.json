@@ -1,5 +1,5 @@
 {
-    "productCode": "GryperLink_idjs",
+    "productCode": "GryperLink",
     "version": "1.0.9",
     "targets": [
       {
@@ -8,7 +8,11 @@
           {
             "name": "GryperLink.idjs",
             "asyncWrapper": false
-          }
+          },
+          {
+            "name": "Copy Sample File with Documentation to Desktop.idjs",
+            "asyncWrapper": false
+          }          
         ]
       }
     ],

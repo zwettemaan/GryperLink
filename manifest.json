@@ -1,0 +1,86 @@
+{
+    "productCode": "GryperLink_idjs",
+    "version": "1.0.9",
+    "targets": [
+      {
+        "method": "STUB_UXPSCRIPT_IN_INDESIGN_SCRIPTS_PANEL",
+        "stubScript": [ 
+          {
+            "name": "GryperLink.idjs",
+            "asyncWrapper": false
+          }
+        ]
+      }
+    ],
+    "filters": [
+        // By default, sign and encrypt all .js and .idjs files
+        { 
+          "regExp": "/^.*\\.(id)?js$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        // But only sign, don't encrypt
+        // - the .idjs files that need to go on the Scripts Panel
+        // - the sample .indd file
+        // - the .nzip file 
+        // - the README.md file
+        { 
+          "regExp": "/^GryperLink\\.idjs$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
+          "regExp": "/^README.txt$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
+          "regExp": "/^CreativeDeveloperTools_UXP\\/.*$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
+          "regExp": "/^.*\\.txt/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        // Omit developer-only files: CreativeDeveloperTools_ES, any .tpkg file
+        // the Developer subfolder, and any invisible items (e.g. .git)
+        { 
+          "regExp": "/^Developer\\/$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^tsconfig\\.json$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^package\\.json$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^package-lock\\.json$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^node_modules\\/$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^.*\\.tpkg$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^.*\\.cate$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^.*\\.prod$/i",  
+          "omit": true
+        },
+        { 
+          "regExp": "/^\\..*$/i",  
+          "omit": true
+        }
+    ]
+}

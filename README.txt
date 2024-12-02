@@ -1,8 +1,8 @@
 # GryperLink
 
-Gryperlink.jsx - a script for Adobe InDesign
+Gryperlink.idjs - a script for Adobe InDesign
 
-v 1.0.8, May 5, 2021
+v 1.0.9, Nov 30, 2024
 
 by Kris Coppieters 
 kris@rorohiko.com
@@ -27,8 +27,6 @@ This script will search the current document for one or more
 GREP patterns, and each time a match is found, it will assign a
 specific hyperlink to the matching text. 
 
-For licensing and copyright information: see end of the script
-
 For more installation info and documentation: visit 
 
 https://www.rorohiko.com/wordpress/use-indesign-find-and-replace-to-assign-hyperlinks-to-text
@@ -39,7 +37,7 @@ form https://coppieters.nz/?p=123456-12 will be assigned to it.
 
 To see what it does: launch InDesign.
 
-Open the _SampleFile.indt_.
+Open the _GryperLinkDemo.idml_.
 
 Bring up the Hyperlinks panel (_Window - Interactive - Hyperlinks_)
 

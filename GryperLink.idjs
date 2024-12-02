@@ -1,0 +1,47 @@
+// If this script was launched from a wrapper script in the InDesign Scripts Panel then
+// crdtuxp will already be defined
+// If this script is launched directly, crdtuxp will not yet be defined
+
+const NAME_MAIN_SCRIPT       = "GryperLink_main"; 
+const IS_STANDALONE_SCRIPT   = ! global.crdtuxp;
+const LOGLEVEL               = 3;
+// LOGFILE_NAME: a file name or undefined
+const LOGFILE_NAME           = undefined; // "GryperLink.log";
+
+if (IS_STANDALONE_SCRIPT) {
+    global.crdtuxp = global.require("./CreativeDeveloperTools_UXP/crdtuxp.js");
+    crdtuxp.init();
+}
+
+function main() {
+// promisor    
+    let context = crdtuxp.getContext();
+
+    crdtuxp.configLogger({
+        logLevel: LOGLEVEL,
+        logToUXPConsole: true,
+        logToFilePath: LOGFILE_NAME ? context.PATH_DESKTOP + LOGFILE_NAME : undefined
+    });
+
+    // We need to refer to the main script relative to RUNPATH_ROOT which
+    // varies depending on how this script was launched
+
+    let retValPromise = Promise.resolve(undefined);
+    try {
+        retValPromise = global.require(context.RUNPATH_ROOT + NAME_MAIN_SCRIPT).main();
+    }
+    catch (err) {
+        console.log("requiring " + NAME_MAIN_SCRIPT + " throws " + err);
+    }
+
+    if (IS_STANDALONE_SCRIPT) {
+        retValPromise = retValPromise.then(crdtuxp.finalize);
+    }
+
+    return retValPromise;
+}
+module.exports.main = main;
+
+if (IS_STANDALONE_SCRIPT) {
+    return main();
+}

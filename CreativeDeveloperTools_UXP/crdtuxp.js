@@ -3257,23 +3257,33 @@ module.exports.functionNameFromArguments = functionNameFromArguments;
 
 /**
  * Interpret a value extracted from some INI data as a boolean. Things like y, n, yes, no, true, false, t, f, 0, 1
+ * Default if missing is 'false'
  *
  * @function getBooleanFromINI
  *
  * @param {string} in_value - ini value
+ * @param {string} in_default - value to use if `undefined` or `""`
  * @returns {boolean} value
  */
 
-function getBooleanFromINI(in_value) {
+function getBooleanFromINI(in_value, in_default) {
 // coderstate: function
     let retVal = false;
 
     try {
-        if (in_value) {
+        if (! in_value) {
+            retVal = in_default ? true : false;
+        }
+        else {
             const value = (in_value + "").replace(REGEXP_TRIM, REGEXP_TRIM_REPLACE);
-            const firstChar = value.charAt(0).toLowerCase();
-            const firstValue = parseInt(firstChar, 10);
-            retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
+            if (! value) {
+                retVal = in_default ? true : false;
+            }
+            else {
+                const firstChar = value.charAt(0).toLowerCase();
+                const firstValue = parseInt(firstChar, 10);
+                retVal = firstChar == "y" || firstChar == "t" || (! isNaN(firstValue) && firstValue != 0);
+            }
         }
     }
     catch (err) {

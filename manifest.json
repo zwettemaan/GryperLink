@@ -30,6 +30,11 @@
           "encrypt": false
         },
         { 
+          "regExp": "/^Copy Sample File with Documentation to Desktop\\.idjs$/i",  
+          "sign": true,
+          "encrypt": false
+        },
+        { 
           "regExp": "/^README.txt$/i",  
           "sign": true,
           "encrypt": false

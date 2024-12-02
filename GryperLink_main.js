@@ -313,7 +313,8 @@ function extractDocINIConfig(doc, config) {
                 if (rawTextLinkPattern) {
                     let textLinkPattern = {};
                     let caseSensitiveRegExpFlag = crdtuxp.getBooleanFromINI(rawTextLinkPattern.casesensitive) ? "" : "i";
-                    textLinkPattern.matchText = new RegExp(rawTextLinkPattern.matchtext, caseSensitiveRegExpFlag);
+                    textLinkPattern.matchText = new RegExp(rawTextLinkPattern.matchtext, "g" + caseSensitiveRegExpFlag);
+                    textLinkPattern.replaceText = rawTextLinkPattern.replacetext;
                     textLinkPattern.link = rawTextLinkPattern.link;
                     textLinkPattern.applyCharStyleName = rawTextLinkPattern.applycharstylename;
                     textLinkPattern.matchCharStyleName = rawTextLinkPattern.matchcharstylename;
@@ -473,12 +474,13 @@ function findINIConfig(doc) {
             for (let idx = 0; idx < stories.length; idx++) {
                 const story = stories[idx];
                 const contents = story.contents;
+                const lowerCaseSpacelessContents = contents.toLowerCase().replace(/\s*/g,"");
                 if (
-                    contents.toLowerCase().indexOf("[" + SECTION_CONFIG_MAIN + "]") >= 0
+                    lowerCaseSpacelessContents.indexOf("[" + SECTION_CONFIG_MAIN + "]") >= 0
                 ||
-                    contents.toLowerCase().indexOf("[" + SECTION_CONFIG_TEXT_LINK + "]") >= 0
+                    lowerCaseSpacelessContents.indexOf("[" + SECTION_CONFIG_TEXT_LINK + "]") >= 0
                 ||
-                    contents.toLowerCase().indexOf("[" + SECTION_CONFIG_IMAGE_LINK + "]") >= 0
+                    lowerCaseSpacelessContents.indexOf("[" + SECTION_CONFIG_IMAGE_LINK + "]") >= 0
                 ) {
                     const config = crdtuxp.readINI(contents);
                     if (
@@ -647,7 +649,7 @@ function linkatImageLink(context, imageLink) {
                 break;
             }
 
-            if (! imageLink || ! imageLink.isValid || imageLink.constructor.name != "Link")
+            if (! imageLink || ! imageLink.isValid || imageLink.constructor.name != "Link") {
                 crdtuxp.logError(arguments, "need Link");
                 break;
             }
@@ -669,7 +671,7 @@ function linkatImageLink(context, imageLink) {
             }
 
             let parentImage = imageLink.parent;
-            if (! parentImage || ! parentImage.isValid || parentImage.constructor.name != "Image")
+            if (! parentImage || ! parentImage.isValid || parentImage.constructor.name != "Image") {
                 break;
             }
 
@@ -692,7 +694,7 @@ function linkatImageLink(context, imageLink) {
                         let hyperLinks = doc.hyperlinks;                        
                         let hyperlinkIdx = hyperLinks.length - 1;
                         while (hyperlinkIdx >= 0) {
-                            let hyperLink = hyperLinks[hyperlinkIdx];
+                            let hyperLink = hyperLinks.item(hyperlinkIdx);
                             if (hyperLink.source == source) {
                                 hyperLink.remove();
                                 break;
@@ -769,8 +771,9 @@ function linkatStory(context, storyOrCell) {
 
                 let matchText = textLinkPattern.matchText;
                 if (matchText) {
-                    let link = textLinkPattern.link;
-                    let text = textLinkPattern.text;
+
+                    let linkPattern = textLinkPattern.link;
+                    let replaceTextPattern = textLinkPattern.replaceText;
                     let charStyle = findCharStyle(context, textLinkPattern.applyCharStyleName);
 
                     let matchList = [];
@@ -778,31 +781,51 @@ function linkatStory(context, storyOrCell) {
                     let contents = storyOrCell.contents;
                     matchText.lastIndex = 0;
 
+                    // Make a list of all matches and the index where they are found
+                    // by repeating exec() on the GREP expression
                     while (match = matchText.exec(contents)) {
                         let matchIdx = match.index;
-                        let matchedString = match[0];
-                        let matchedLink = matchedString.replace(matchText, link);
-                        if (text) {
-                            let matchedText = matchedString.replace(matchText, text);
-                        }
-                        else {
-                            matchedText = "";
-                        }
+                        let originalText = match[0];
                         matchList.push({
                             matchIdx: matchIdx,
-                            matchedString: matchedString,
-                            matchedLink: matchedLink,
-                            matchedText: matchedText
+                            originalText: originalText
                         });
+                    }
+
+                    // Calculate the strings for text replacement and link insertion
+                    for (let matchListIdx = 0; matchListIdx < matchList.length; matchListIdx++) {
+
+                        match = matchList[matchListIdx];
+                        let originalText = match.originalText;
+
+                        // Apply the GREP replacement on the the original text to get the 
+                        // link string
+                        let linkToInject = "";
+                        if (linkPattern) {
+                            linkToInject = originalText.replace(matchText, linkPattern);
+                        }
+
+                        let replacementText = "";
+                        if (replaceTextPattern) {
+                            replacementText = originalText.replace(matchText, replaceTextPattern);
+                        }
+
+                        match.linkToInject = linkToInject;
+                        match.replacementText = replacementText;
                     }
 
                     for (let matchListIdx = matchList.length - 1; matchListIdx >= 0; matchListIdx--) {
                         try {
+                            // 
+                            // Check additional match criteria, if any
+                            //
                             let match = matchList[matchListIdx];
                             let startIdx = match.matchIdx;
-                            let endIdx = startIdx + match.matchedString.length - 1;
+                            let endIdx = startIdx + match.originalText.length - 1;
                             let firstChar = storyOrCell.characters.item(startIdx);
-                        
+                            let linkToInject = match.linkToInject;
+                            let replacementText = match.replacementText;
+                            
                             let replace = true;                      
 
                             if (replace && textLinkPattern.matchParaStyleName) {
@@ -848,20 +871,22 @@ function linkatStory(context, storyOrCell) {
                             }
                         
                             if (replace) {
-                                if (matchedText) {
+
+                                if (replacementText) {
                                     storyOrCell.characters.itemByRange(startIdx + 1, endIdx).remove();
-                                    storyOrCell.characters.item(startIdx).contents = match.matchedText;
-                                    endIdx = startIdx + match.matchedText.length - 1;
+                                    storyOrCell.characters.item(startIdx).contents = replacementText;
+                                    endIdx = startIdx + replacementText.length - 1;
                                 }
+
                                 try {
-                                    let hyperLinkDestination = addHyperlinkDestination(context, match.matchedLink);
+                                    let hyperLinkDestination = addHyperlinkDestination(context, linkToInject);
                                     let characters = storyOrCell.characters.itemByRange(startIdx, endIdx);
                                     let source = addHyperlinkTextSource(context, characters);
 
                                     let hyperLinks = app.activeDocument.hyperlinks;                        
                                     let hyperlinkIdx = hyperLinks.length - 1;
                                     while (hyperlinkIdx >= 0) {
-                                        let hyperLink = hyperLinks[hyperlinkIdx];
+                                        let hyperLink = hyperLinks.item(hyperlinkIdx);
                                         if (hyperLink.source == source) {
                                             hyperLink.remove();
                                             break;

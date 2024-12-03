@@ -2105,9 +2105,19 @@ function evalTQL(tqlScript, options) {
                     let retVal = undefined;
 
                     let responseText;
+                    let responseTextUnwrapped;
+
                     do {
                         try {
+
+                            if (! replyByteArray) {
+                                break;
+                            }
+
                             let jsonResponse = binaryUTF8ToStr(replyByteArray);
+                            if (jsonResponse == "undefined") {
+                                break;
+                            }
 
                             let response;
                             try {
@@ -2134,7 +2144,7 @@ function evalTQL(tqlScript, options) {
                     if (resultIsRawBinary) {
                         responseTextUnwrapped = responseText;
                     }
-                    else {
+                    else if (responseText) {
                         responseTextUnwrapped = binaryUTF8ToStr(deQuote(responseText));
                     }
 
@@ -2244,6 +2254,14 @@ function evalTQL(tqlScript, options) {
 
                     do {
                         let responseTextUnwrapped;
+                        if (! responseText) {
+                            break;
+                        }
+
+                        if (responseText == "undefined") {
+                            break;
+                        }
+
                         try {
                             if (resultIsRawBinary) {
                                 responseTextUnwrapped = responseText;
@@ -3333,8 +3351,12 @@ function getCapability(issuer, capabilityCode, encryptionKey) {
                 let retVal;
 
                 do {
-                    if (! response || response.error) {
+                    if (response && response.error) {
                         crdtuxp.logError(arguments, "bad response, error = " + response?.error);
+                        break;
+                    }
+
+                    if (! response) {
                         break;
                     }
 
@@ -4287,6 +4309,35 @@ function getUXPContext() {
     return retVal;
 }
 module.exports.getUXPContext = getUXPContext;
+
+/**
+ * Hash some text
+ * 
+ * Not cryptographic
+ *
+ * @function hashStringFNV1a
+ * 
+ * @param {string} s - text to hash
+ * @returns a hash for the input
+ * 
+ */
+
+function hashStringFNV1a(s) {
+
+    const fnv1a = (str) => {
+        let hash = 0x811c9dc5; // 32-bit FNV-1a offset basis
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0; // Ensure 32-bit unsigned
+    };
+
+    var hash = fnv1a(s.toString()).toString(16); // Hexadecimal hash
+
+    return hash;
+}
+module.exports.hashStringFNV1a = hashStringFNV1a;
 
 /**
  * Initialize crdtuxp
